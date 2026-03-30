@@ -1,0 +1,193 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.top-bar { padding: 1.5rem 0 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.5rem; }
+.site-title { font-size: 22px; font-weight: 500; color: var(--color-text-primary); letter-spacing: -0.5px; }
+.site-sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem; }
+.search-wrap { flex: 1 1 200px; position: relative; }
+.search-wrap input { width: 100%; padding-left: 32px; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--color-text-secondary); pointer-events: none; }
+select { padding: 0 10px; height: 36px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px; cursor: pointer; }
+.date-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.date-tab { padding: 6px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); font-size: 13px; cursor: pointer; color: var(--color-text-secondary); background: var(--color-background-primary); transition: all 0.15s; }
+.date-tab.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
+.movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.movie-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.movie-poster { width: 100%; aspect-ratio: 2/3; background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.poster-placeholder { font-size: 48px; opacity: 0.3; }
+.poster-img { width: 100%; height: 100%; object-fit: cover; }
+.rating-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #fff; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: var(--border-radius-md); }
+.movie-info { padding: 12px; }
+.movie-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.movie-meta { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
+.genre-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.genre-tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.showtimes-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 5px; }
+.cinema-block { margin-bottom: 8px; }
+.cinema-name { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; }
+.times-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.time-btn { padding: 4px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; background: var(--color-background-primary); color: var(--color-text-primary); transition: all 0.12s; }
+.time-btn:hover { background: var(--color-text-primary); color: var(--color-background-primary); }
+.trailer-btn { display: block; width: 100%; padding: 8px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; background: transparent; color: var(--color-text-secondary); margin-top: 8px; text-align: center; }
+.trailer-btn:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); }
+.no-results { text-align: center; padding: 3rem; color: var(--color-text-secondary); font-size: 14px; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--color-background-primary); border-radius: var(--border-radius-lg); padding: 1.5rem; max-width: 560px; width: 90%; position: relative; }
+.modal-close { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--color-text-secondary); }
+.modal-title { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+.modal-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; }
+.video-frame { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--border-radius-md); display: flex; align-items: center; justify-content: center; color: #666; font-size: 13px; }
+.result-count { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 1rem; }
+</style>
+
+<div class="top-bar">
+  <div class="site-title">BKK Showtimes</div>
+  <div class="site-sub">รอบฉายหนังในกรุงเทพ — วันนี้และวันถัดไป</div>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" id="search" placeholder="ค้นหาชื่อหนัง..." oninput="render()">
+  </div>
+  <select id="cinema-filter" onchange="render()">
+    <option value="">ทุกโรงหนัง</option>
+    <option value="Major">Major Cineplex</option>
+    <option value="SF">SF Cinema</option>
+    <option value="Paragon">Paragon Cineplex</option>
+    <option value="Central Embassy">Central Embassy</option>
+  </select>
+  <select id="genre-filter" onchange="render()">
+    <option value="">ทุกแนว</option>
+    <option value="แอคชั่น">แอคชั่น</option>
+    <option value="ดราม่า">ดราม่า</option>
+    <option value="ตลก">ตลก</option>
+    <option value="สยองขวัญ">สยองขวัญ</option>
+    <option value="แอนิเมชั่น">แอนิเมชั่น</option>
+    <option value="ไซ-ไฟ">ไซ-ไฟ</option>
+  </select>
+</div>
+
+<div class="date-tabs" id="date-tabs"></div>
+<div class="result-count" id="result-count"></div>
+<div class="movie-grid" id="movie-grid"></div>
+
+<div class="modal-overlay" id="trailer-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeTrailer()">&#215;</button>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="video-frame" id="video-frame">
+      <span>&#9654; เทรลเลอร์ (YouTube embed)</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const today = new Date();
+const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function fmtDate(d){ return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()]; }
+function addDays(d, n){ let x=new Date(d); x.setDate(x.getDate()+n); return x; }
+let selectedDate = 0;
+const dateOptions = [0,1,2,3,4].map(i => ({ offset: i, label: i===0?'วันนี้': i===1?'พรุ่งนี้': fmtDate(addDays(today,i)), date: addDays(today,i) }));
+
+const movies = [
+  { id:1, title:'Avengers: Doomsday', eng:'Avengers: Doomsday', year:2025, rating:'PG-13', duration:'2h 30m', genres:['แอคชั่น','ไซ-ไฟ'], color:'#1a1a2e',
+    showtimes:{ 'Major': ['10:00','13:15','16:30','20:00','22:30'], 'SF': ['11:00','14:20','18:45','21:30'], 'Paragon': ['10:30','14:00','17:30','21:00'], 'Central Embassy':['12:00','15:30','19:45'] },
+    trailer:'https://www.youtube.com/watch?v=dQw4w9WgXcQ', desc:'ทีม Avengers กลับมาพร้อมภัยคุกคามครั้งใหญ่ที่สุด' },
+  { id:2, title:'ลาก่อนแล้วเจอกัน', eng:'See You Again', year:2025, rating:'ท', duration:'1h 55m', genres:['ดราม่า','โรแมนติก'], color:'#2d1b3d',
+    showtimes:{ 'Major': ['11:30','14:45','18:00','21:15'], 'SF': ['10:00','13:30','17:00','20:30'], 'Paragon': ['12:30','16:00','19:30'] },
+    trailer:'', desc:'หนังไทยสุดซึ้งว่าด้วยความรักและการพลัดพราก' },
+  { id:3, title:'Inside Out 3', eng:'Inside Out 3', year:2025, rating:'ท', duration:'1h 45m', genres:['แอนิเมชั่น','ตลก'], color:'#0a3d62',
+    showtimes:{ 'Major': ['10:00','12:30','15:00','17:30','20:00'], 'SF': ['11:00','13:30','16:00','18:30'], 'Central Embassy':['10:30','13:00','15:30','18:00','20:30'] },
+    trailer:'', desc:'ผจญภัยในโลกแห่งอารมณ์ความรู้สึกอีกครั้ง' },
+  { id:4, title:'The Substance 2', eng:'The Substance 2', year:2025, rating:'18+', duration:'2h 10m', genres:['สยองขวัญ','ดราม่า'], color:'#1a0a0a',
+    showtimes:{ 'Major': ['16:00','19:30','22:00'], 'SF': ['15:30','18:45','21:45'], 'Paragon': ['17:00','20:30','23:00'] },
+    trailer:'', desc:'ฝันร้ายในฮอลลีวูดที่ยังไม่จบ' },
+  { id:5, title:'คนโขน', eng:'Khon', year:2025, rating:'ท', duration:'2h 05m', genres:['แอคชั่น','ดราม่า'], color:'#1a1200',
+    showtimes:{ 'Major': ['12:00','15:30','19:00','21:30'], 'SF': ['11:30','14:45','18:15','21:00'], 'Central Embassy':['13:00','16:30','20:00'] },
+    trailer:'', desc:'มหากาพย์แอคชั่นไทยที่ผสมผสานศิลปะโขน' },
+  { id:6, title:'Mission: Impossible 8', eng:'Dead Reckoning Part Two', year:2025, rating:'PG-13', duration:'2h 42m', genres:['แอคชั่น','ทริลเลอร์'], color:'#0d0d1a',
+    showtimes:{ 'Major': ['10:30','14:00','17:30','21:00'], 'Paragon': ['11:00','14:30','18:00','21:30'], 'Central Embassy':['12:30','16:00','20:00'] },
+    trailer:'', desc:'Ethan Hunt กลับมาในภารกิจที่อันตรายที่สุด' },
+];
+
+function buildDateTabs(){
+  const container = document.getElementById('date-tabs');
+  container.innerHTML = dateOptions.map((d,i)=>`
+    <button class="date-tab ${i===selectedDate?'active':''}" onclick="selectDate(${i})">${d.label}</button>
+  `).join('');
+}
+
+function selectDate(i){ selectedDate=i; buildDateTabs(); render(); }
+
+function render(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const cinema = document.getElementById('cinema-filter').value;
+  const genre = document.getElementById('genre-filter').value;
+  let filtered = movies.filter(m => {
+    if(q && !m.title.toLowerCase().includes(q) && !m.eng.toLowerCase().includes(q)) return false;
+    if(genre && !m.genres.includes(genre)) return false;
+    if(cinema){
+      const hasCinema = m.showtimes[cinema] && m.showtimes[cinema].length > 0;
+      if(!hasCinema) return false;
+    }
+    return true;
+  });
+  document.getElementById('result-count').textContent = `แสดง ${filtered.length} เรื่อง`;
+  const grid = document.getElementById('movie-grid');
+  if(!filtered.length){ grid.innerHTML='<div class="no-results">ไม่พบหนังที่ตรงกับเงื่อนไข</div>'; return; }
+  grid.innerHTML = filtered.map(m => {
+    const cinemaFilter = cinema || null;
+    const showtimeEntries = cinemaFilter
+      ? (m.showtimes[cinemaFilter] ? [[cinemaFilter, m.showtimes[cinemaFilter]]] : [])
+      : Object.entries(m.showtimes);
+    const showtimesHTML = showtimeEntries.map(([cn, times])=>`
+      <div class="cinema-block">
+        <div class="cinema-name">${cn}</div>
+        <div class="times-row">${times.map(t=>`<button class="time-btn">${t}</button>`).join('')}</div>
+      </div>
+    `).join('');
+    return `
+    <div class="movie-card">
+      <div class="movie-poster" style="background: ${m.color}20;">
+        <span class="poster-placeholder">&#127902;</span>
+        <div class="rating-badge">${m.rating}</div>
+      </div>
+      <div class="movie-info">
+        <div class="movie-title" title="${m.title}">${m.title}</div>
+        <div class="movie-meta">${m.eng} &nbsp;·&nbsp; ${m.duration}</div>
+        <div class="genre-tags">${m.genres.map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div>
+        <div class="showtimes-label">รอบฉาย — ${dateOptions[selectedDate].label}</div>
+        ${showtimesHTML}
+        <button class="trailer-btn" onclick="openTrailer(${m.id})">&#9654; ดูเทรลเลอร์</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openTrailer(id){
+  const m = movies.find(x=>x.id===id);
+  document.getElementById('modal-title').textContent = m.title;
+  document.getElementById('modal-sub').textContent = m.desc;
+  const vf = document.getElementById('video-frame');
+  if(m.trailer){
+    const ytId = m.trailer.split('v=')[1];
+    vf.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:var(--border-radius-md)"></iframe>`;
+  } else {
+    vf.innerHTML = `<span>&#9654; เทรลเลอร์พร้อมให้ชม (ต่อเมื่อเชื่อมต่อ API จริง)</span>`;
+  }
+  document.getElementById('trailer-modal').classList.add('open');
+}
+function closeTrailer(){
+  document.getElementById('trailer-modal').classList.remove('open');
+  document.getElementById('video-frame').innerHTML = '';
+}
+
+buildDateTabs();
+render();
+</script>
